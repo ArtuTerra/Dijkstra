@@ -1,6 +1,7 @@
 package main
 
 import (
+	"dijsktra/grafo"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,25 +10,6 @@ import (
 	"math"
 	"net/http"
 )
-
-type distanciaTempo struct {
-	distancia float64
-	tempo     int
-}
-
-type aresta struct {
-	nome  string
-	dados distanciaTempo
-}
-
-type vertice struct {
-	nome    string
-	arestas []aresta
-}
-
-type grafo struct {
-	vertices map[string]vertice
-}
 
 type Resultado struct {
 	Caminho        []string `json:"caminho"`
@@ -53,90 +35,6 @@ var verticesNome = []string{
 	"Marginal Pinheiros, Km 5",
 }
 
-func inicializarGrafo() grafo {
-	g := grafo{
-		vertices: make(map[string]vertice),
-	}
-
-	for _, nome := range verticesNome {
-		g.vertices[nome] = vertice{nome: nome, arestas: []aresta{}}
-	}
-
-	g.adicionarAresta("Av. Paulista, 1000", "Rua Augusta, 500", 2.3, 8)
-	g.adicionarAresta("Av. Paulista, 1000", "Rua Consolação, 200", 1.5, 12)
-
-	g.adicionarAresta("Rua Augusta, 500", "Av. Paulista, 1000", 2.3, 8)
-	g.adicionarAresta("Rua Augusta, 500", "Rua Oscar Freire, 100", 1.8, 6)
-	g.adicionarAresta("Rua Augusta, 500", "Alameda Santos, 300", 1.2, 5)
-
-	g.adicionarAresta("Rua Consolação, 200", "Av. Paulista, 1000", 1.5, 12)
-	g.adicionarAresta("Rua Consolação, 200", "Praça da República, 50", 2.0, 15)
-	g.adicionarAresta("Rua Consolação, 200", "Alameda Santos, 300", 1.0, 7)
-
-	g.adicionarAresta("Rua Oscar Freire, 100", "Rua Augusta, 500", 1.8, 6)
-	g.adicionarAresta("Rua Oscar Freire, 100", "Shopping Iguatemi", 3.5, 10)
-	g.adicionarAresta("Rua Oscar Freire, 100", "Av. Rebouças, 1500", 2.2, 9)
-
-	g.adicionarAresta("Alameda Santos, 300", "Rua Augusta, 500", 1.2, 5)
-	g.adicionarAresta("Alameda Santos, 300", "Rua Consolação, 200", 1.0, 7)
-	g.adicionarAresta("Alameda Santos, 300", "Av. Brigadeiro, 800", 1.8, 6)
-	g.adicionarAresta("Alameda Santos, 300", "Praça da República, 50", 1.5, 10)
-
-	g.adicionarAresta("Praça da República, 50", "Rua Consolação, 200", 2.0, 15)
-	g.adicionarAresta("Praça da República, 50", "Alameda Santos, 300", 1.5, 10)
-	g.adicionarAresta("Praça da República, 50", "Av. São João, 1200", 1.0, 8)
-	g.adicionarAresta("Praça da República, 50", "Terminal Parque Dom Pedro", 2.5, 18)
-
-	g.adicionarAresta("Av. Brigadeiro, 800", "Alameda Santos, 300", 1.8, 6)
-	g.adicionarAresta("Av. Brigadeiro, 800", "Av. Ibirapuera, 2000", 3.0, 11)
-	g.adicionarAresta("Av. Brigadeiro, 800", "Shopping Iguatemi", 2.5, 8)
-
-	g.adicionarAresta("Shopping Iguatemi", "Rua Oscar Freire, 100", 3.5, 10)
-	g.adicionarAresta("Shopping Iguatemi", "Av. Brigadeiro, 800", 2.5, 8)
-	g.adicionarAresta("Shopping Iguatemi", "Av. Ibirapuera, 2000", 4.0, 12)
-	g.adicionarAresta("Shopping Iguatemi", "Av. Rebouças, 1500", 1.5, 5)
-
-	g.adicionarAresta("Av. Rebouças, 1500", "Rua Oscar Freire, 100", 2.2, 9)
-	g.adicionarAresta("Av. Rebouças, 1500", "Shopping Iguatemi", 1.5, 5)
-	g.adicionarAresta("Av. Rebouças, 1500", "Marginal Pinheiros, Km 5", 3.8, 14)
-
-	g.adicionarAresta("Av. Ibirapuera, 2000", "Av. Brigadeiro, 800", 3.0, 11)
-	g.adicionarAresta("Av. Ibirapuera, 2000", "Shopping Iguatemi", 4.0, 12)
-	g.adicionarAresta("Av. Ibirapuera, 2000", "Parque Ibirapuera - Portão 2", 1.0, 4)
-	g.adicionarAresta("Av. Ibirapuera, 2000", "Terminal Parque Dom Pedro", 5.5, 25)
-
-	g.adicionarAresta("Parque Ibirapuera - Portão 2", "Av. Ibirapuera, 2000", 1.0, 4)
-	g.adicionarAresta("Parque Ibirapuera - Portão 2", "Av. São João, 1200", 6.0, 28)
-
-	g.adicionarAresta("Av. São João, 1200", "Praça da República, 50", 1.0, 8)
-	g.adicionarAresta("Av. São João, 1200", "Terminal Parque Dom Pedro", 2.0, 12)
-	g.adicionarAresta("Av. São João, 1200", "Parque Ibirapuera - Portão 2", 6.0, 28)
-
-	g.adicionarAresta("Terminal Parque Dom Pedro", "Praça da República, 50", 2.5, 18)
-	g.adicionarAresta("Terminal Parque Dom Pedro", "Av. São João, 1200", 2.0, 12)
-	g.adicionarAresta("Terminal Parque Dom Pedro", "Av. Ibirapuera, 2000", 5.5, 25)
-	g.adicionarAresta("Terminal Parque Dom Pedro", "Marginal Pinheiros, Km 5", 8.0, 22)
-
-	g.adicionarAresta("Marginal Pinheiros, Km 5", "Av. Rebouças, 1500", 3.8, 14)
-	g.adicionarAresta("Marginal Pinheiros, Km 5", "Terminal Parque Dom Pedro", 8.0, 22)
-
-	return g
-}
-
-func (g *grafo) adicionarAresta(origem string, destino string, distancia float64, tempo int) {
-	if v, exists := g.vertices[origem]; exists {
-		v.arestas = append(v.arestas, aresta{
-			nome: destino,
-			dados: distanciaTempo{
-				distancia: distancia,
-				tempo:     tempo,
-			},
-		})
-
-		g.vertices[origem] = v
-	}
-}
-
 func main() {
 	http.HandleFunc("/", postHandler)
 
@@ -148,8 +46,7 @@ func main() {
 }
 
 func iniciarDijkstra(origem string, destino string, criterio string) (*Resultado, error) {
-	g := grafo{}
-	g = inicializarGrafo()
+	g := grafo.NewGrafo()
 
 	return encontrarMelhorRota(g, origem, destino, criterio)
 }
@@ -200,7 +97,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, string(jsonBytes))
 }
 
-func encontrarMelhorRota(g grafo, origem string, destino string, criterio string) (*Resultado, error) {
+func encontrarMelhorRota(g grafo.Grafo, origem string, destino string, criterio string) (*Resultado, error) {
 	if err := validarRota(g, origem, destino); err != nil {
 		return nil, err
 	}
@@ -216,7 +113,7 @@ func encontrarMelhorRota(g grafo, origem string, destino string, criterio string
 	for _, nome := range verticesNome {
 		explorado[nome] = false
 		pontuacao[nome] = math.Inf(1)
-		if g.vertices[nome].nome == origem {
+		if g.Vertices[nome].Nome == origem {
 			pontuacao[nome] = 0
 		}
 	}
@@ -244,17 +141,17 @@ func encontrarMelhorRota(g grafo, origem string, destino string, criterio string
 
 		explorado[menor.nome] = true
 
-		for _, aresta := range g.vertices[menor.nome].arestas {
+		for _, aresta := range g.Vertices[menor.nome].Arestas {
 			var novaPontuacao float64
 			if criterio == "tempo" {
-				novaPontuacao = pontuacao[menor.nome] + float64(aresta.dados.tempo)
+				novaPontuacao = pontuacao[menor.nome] + float64(aresta.Dados.Tempo)
 			} else {
-				novaPontuacao = pontuacao[menor.nome] + aresta.dados.distancia
+				novaPontuacao = pontuacao[menor.nome] + aresta.Dados.Distancia
 			}
 
-			if novaPontuacao < pontuacao[aresta.nome] {
-				pontuacao[aresta.nome] = novaPontuacao
-				anterior[aresta.nome] = menor.nome
+			if novaPontuacao < pontuacao[aresta.Nome] {
+				pontuacao[aresta.Nome] = novaPontuacao
+				anterior[aresta.Nome] = menor.nome
 			}
 
 		}
@@ -278,10 +175,10 @@ func encontrarMelhorRota(g grafo, origem string, destino string, criterio string
 		verticeAtual := caminho[i]
 		verticeProximo := caminho[i+1]
 
-		for _, aresta := range g.vertices[verticeAtual].arestas {
-			if aresta.nome == verticeProximo {
-				distanciaTotal += aresta.dados.distancia
-				tempoTotal += aresta.dados.tempo
+		for _, aresta := range g.Vertices[verticeAtual].Arestas {
+			if aresta.Nome == verticeProximo {
+				distanciaTotal += aresta.Dados.Distancia
+				tempoTotal += aresta.Dados.Tempo
 				break
 			}
 		}
@@ -295,12 +192,12 @@ func encontrarMelhorRota(g grafo, origem string, destino string, criterio string
 	}, nil
 }
 
-func validarRota(g grafo, origem string, destino string) error {
-	if _, exists := g.vertices[origem]; !exists {
+func validarRota(g grafo.Grafo, origem string, destino string) error {
+	if _, exists := g.Vertices[origem]; !exists {
 		return errors.New("origem não existe")
 	}
 
-	if _, exists := g.vertices[destino]; !exists {
+	if _, exists := g.Vertices[destino]; !exists {
 		return errors.New("destino não existe")
 	}
 	return nil
