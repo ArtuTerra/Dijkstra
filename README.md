@@ -1,5 +1,7 @@
 ## Sistema de Navegação com Dijkstra
 
+Sistema feito para fins educacionais do algoritmo e também para praticar GoLang
+
 Como usar:
 
 Rode o comando `go run Dijkstra.go`
